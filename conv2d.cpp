@@ -103,30 +103,34 @@ int main(int argc, char* argv[])
 
 	//Getting the kernel
 	int k=6*sigma+1;
-	cout<<k<<endl;
-	float **kernel0 = (float **)malloc(k * sizeof *kernel0 + (k * (1 * sizeof **kernel0)));
-	float **kernel1 = (float **)malloc(1* sizeof *kernel1 + (1* (k * sizeof **kernel1)));
+
+	float **kernel0 = (float **)malloc(k * sizeof(float*));
+	float **kernel1 = (float **)malloc(1* sizeof(float*));
+
+	for(int i=0;i<k;i++)
+		kernel0[i]=(float*)malloc(1*sizeof(float));
+	
+	kernel1[0]=(float*)malloc(k*sizeof(float));
+
+	float c=sqrt(2*M_PI*sigma*sigma);
+
+	int mid=floor(k/2);
+	kernel0[mid][0]=1/c;
+	kernel1[0][mid]=1/c;
 
 	for(int i=0;i<floor(k/2);i++)
 	{
-		cout<<i<<endl;
-		kernel0[i][0]=exp(-(floor(k/2)-i)*(floor(k/2)-i));
-		cout<<"reached"<<endl;
+		kernel0[i][0]=(exp(-(floor(k/2)-i)*(floor(k/2)-i)))/c;
+
+		kernel1[0][i]=kernel0[i][0];
 
 		kernel0[k-1-i][0]=kernel0[i][0];
-		cout<<"reached"<<endl;
-
-		kernel1[0][i]=exp(-(floor(k/2)-i)*(floor(k/2)-i));
-		cout<<"reached"<<endl;
 
 		kernel1[0][k-1-i]=kernel1[0][i];
-		cout<<"reached"<<endl;
 
 	}
 
-	cout<<kernel1<<endl;
-
-	cout<<kernel0<<endl;
+	//perform convolution
 
 	return 0;
 }
