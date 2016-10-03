@@ -14,6 +14,8 @@ struct  pixel
 	unsigned int b;
 };
 
+
+
 int main(int argc, char* argv[])
 {
 	if(argc != 3) //there should be three arguments
@@ -54,8 +56,13 @@ int main(int argc, char* argv[])
 	img_ht=atoi(word.c_str());
 	numpixels=img_wd*img_ht;
 
-	getline(infile,line); //this stores max value
 
+	//storing the pixels lexicographically
+	pixel* Pixel = (pixel*)malloc(numpixels*sizeof(struct pixel));
+
+	int pix_cnt=0;	
+	getline(infile,line); //this stores max value
+	int cnt=0;
 	istringstream iss3(line);
 	iss3>>word;
 	max_val=atoi(word.c_str());//max pixel value
@@ -63,18 +70,34 @@ int main(int argc, char* argv[])
 	while (getline(infile, line))
 	{
 		istringstream iss4(line);
-		while(iss4>>word)
+		// cout<<line.length()<<endl;
+		for (int i=0; i<=line.length();i++)
 		{
-			for (int i=0; i<word.size();i++)
+			int val =(unsigned int)line[i];
+			if(cnt%3==0)
 			{
-				int val =(unsigned int)word[i];
-				// cout<<val;
+				Pixel[pix_cnt].r=val;
+				// cout<<val<<" ";
 			}
-		}
+			if(cnt%3==1)
+			{
+				Pixel[pix_cnt].g=val;
+			}
+			if(cnt%3==2)
+			{
+				Pixel[pix_cnt].b=val;
+				pix_cnt++;
+			}
+			cnt++;	
+		} 
 		line_count++;
 	}
 	cout<<endl<<line_count<<endl;
+	cout<<cnt<<endl;
+	cout<<endl<<pix_cnt<<endl;
 	cout<<max_val<<endl; cout<<img_ht<<endl; cout<<img_wd<<endl;
-	// cout<<"ends";
+
+	//last pixel is pix_cnt-1
+
 	return 0;
 }
