@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 #include <stdlib.h>
+#include <math.h>
 
 using namespace std;
 
@@ -92,12 +93,40 @@ int main(int argc, char* argv[])
 		} 
 		line_count++;
 	}
-	cout<<endl<<line_count<<endl;
-	cout<<cnt<<endl;
-	cout<<endl<<pix_cnt<<endl;
-	cout<<max_val<<endl; cout<<img_ht<<endl; cout<<img_wd<<endl;
+	// cout<<endl<<line_count<<endl;
+	// cout<<cnt<<endl;
+	// cout<<endl<<pix_cnt<<endl;
+	// cout<<max_val<<endl; cout<<img_ht<<endl; cout<<img_wd<<endl;
 
 	//last pixel is pix_cnt-1
+	//Pixels have been stored
+
+	//Getting the kernel
+	int k=6*sigma+1;
+	cout<<k<<endl;
+	float **kernel0 = (float **)malloc(k * sizeof *kernel0 + (k * (1 * sizeof **kernel0)));
+	float **kernel1 = (float **)malloc(1* sizeof *kernel1 + (1* (k * sizeof **kernel1)));
+
+	for(int i=0;i<floor(k/2);i++)
+	{
+		cout<<i<<endl;
+		kernel0[i][0]=exp(-(floor(k/2)-i)*(floor(k/2)-i));
+		cout<<"reached"<<endl;
+
+		kernel0[k-1-i][0]=kernel0[i][0];
+		cout<<"reached"<<endl;
+
+		kernel1[0][i]=exp(-(floor(k/2)-i)*(floor(k/2)-i));
+		cout<<"reached"<<endl;
+
+		kernel1[0][k-1-i]=kernel1[0][i];
+		cout<<"reached"<<endl;
+
+	}
+
+	cout<<kernel1<<endl;
+
+	cout<<kernel0<<endl;
 
 	return 0;
 }
