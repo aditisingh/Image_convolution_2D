@@ -15,8 +15,6 @@ struct  pixel
 	unsigned int b;
 };
 
-
-
 int main(int argc, char* argv[])
 {
 	if(argc != 3) //there should be three arguments
@@ -58,69 +56,81 @@ int main(int argc, char* argv[])
 	numpixels=img_wd*img_ht;
 
 
-	//storing the pixels lexicographically
-	pixel* Pixel = (pixel*)malloc(numpixels*sizeof(struct pixel));
+	//storing the pixels as 2d images
+	pixel **Pixel = (pixel**)malloc(img_ht*sizeof(pixel*));
+	
+	for(int i=0;i<img_ht;i++)
+	Pixel[i]=(pixel*)malloc(img_wd*sizeof(pixel));
 
-	int pix_cnt=0;	
+	
+
+	unsigned int pix_cnt=0;	
 	getline(infile,line); //this stores max value
-	int cnt=0;
+	unsigned int cnt=0;
+	unsigned int r,c;
 	istringstream iss3(line);
 	iss3>>word;
 	max_val=atoi(word.c_str());//max pixel value
-	
+
 	while (getline(infile, line))
 	{
 		istringstream iss4(line);
-		// cout<<line.length()<<endl;
+		
 		for (int i=0; i<=line.length();i++)
 		{
-			int val =(unsigned int)line[i];
-			if(cnt%3==0)
-			{
-				Pixel[pix_cnt].r=val;
-				// cout<<val<<" ";
-			}
-			if(cnt%3==1)
-			{
-				Pixel[pix_cnt].g=val;
-			}
-			if(cnt%3==2)
-			{
-				Pixel[pix_cnt].b=val;
-				pix_cnt++;
-			}
-			cnt++;	
+			if(pix_cnt<img_ht*img_wd)
+			{	
+				unsigned int val =(unsigned int)line[i];
+				r=floor(pix_cnt/img_wd);
+				c=pix_cnt%img_wd;
+				//cout<<r<<" "<<c<<" "<<img_ht<<" "<<img_wd<<" "<<pix_cnt<<endl;
+				if(cnt%3==0)
+				{		
+					Pixel[r][c].r=val;
+					// cout<<val<<" ";
+				}
+				if(cnt%3==1)
+				{
+					Pixel[r][c].g=val;
+				}
+				if(cnt%3==2)
+				{
+					Pixel[r][c].b=val;
+					pix_cnt++;
+				}
+				cnt++;
+			}	
 		} 
-		line_count++;
+		line_count++;		
+		
 	}
-	// cout<<endl<<line_count<<endl;
-	// cout<<cnt<<endl;
-	// cout<<endl<<pix_cnt<<endl;
-	// cout<<max_val<<endl; cout<<img_ht<<endl; cout<<img_wd<<endl;
+	
+	cout<<Pixel[img_ht-1][img_wd-1].r<<" "<<Pixel[img_ht-1][img_wd-1].g<<" "<<Pixel[img_ht-1][img_wd-1].b<<endl;
+	//Pixels have been stored successfully
 
-	//last pixel is pix_cnt-1
-	//Pixels have been stored
 
 	//Getting the kernel
-	int k=6*sigma+1;
+	int k=6*sigma;//sigma might have fractional part
 
-	float **kernel0 = (float **)malloc(k * sizeof(float*));
-	float **kernel1 = (float **)malloc(1* sizeof(float*));
+	if(k%2==0) k++; //odd k
+
+	float **kernel0 = (float **)malloc(k * sizeof(float*)); //x based gaussian
+	float **kernel1 = (float **)malloc(1* sizeof(float*));	//y based gaussian
 
 	for(int i=0;i<k;i++)
 		kernel0[i]=(float*)malloc(1*sizeof(float));
 	
 	kernel1[0]=(float*)malloc(k*sizeof(float));
 
-	float c=sqrt(2*M_PI*sigma*sigma);
+	float constant=sqrt(2*M_PI*sigma*sigma);
 
 	int mid=floor(k/2);
-	kernel0[mid][0]=1/c;
-	kernel1[0][mid]=1/c;
+	kernel0[mid][0]=1/constant;
+	kernel1[0][mid]=1/constant;
 
-	for(int i=0;i<floor(k/2);i++)
+	for(int i=0;i<floor(k/2);i++)	//using symmetry from center
 	{
-		kernel0[i][0]=(exp(-(floor(k/2)-i)*(floor(k/2)-i)))/c;
+		kernel0[i][0]=(exp(-(floor(k/2)-i)*(floor(k/2)-i)))/constant;
 
 		kernel1[0][i]=kernel0[i][0];
 
@@ -131,6 +141,7 @@ int main(int argc, char* argv[])
 	}
 
 	//perform convolution
+
 
 	return 0;
 }
