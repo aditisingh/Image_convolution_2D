@@ -22,6 +22,40 @@ int main(int argc, char* argv[])
 	
 	int sigma = atoi(argv[2]); 
     
+	//Getting the kernel
+	int k=6*sigma;//sigma might have fractional part
+
+	if(k%2==0) k++; //odd k
+
+	float **kernel0 = (float **)malloc(k * sizeof(float*)); //x based gaussian
+	float **kernel1 = (float **)malloc(1* sizeof(float*));	//y based gaussian
+
+	for(int i=0;i<k;i++)
+		kernel0[i]=(float*)malloc(1*sizeof(float));
+	
+	kernel1[0]=(float*)malloc(k*sizeof(float));
+
+	float constant=sqrt(2*M_PI*sigma*sigma);
+
+	int mid=floor(k/2);
+	kernel0[mid][0]=1/constant;
+	kernel1[0][mid]=1/constant;
+
+	for(int i=0;i<floor(k/2);i++)	//using symmetry from center
+	{
+		kernel0[i][0]=(exp(-(floor(k/2)-i)*(floor(k/2)-i)))/constant;
+
+		kernel1[0][i]=kernel0[i][0];
+
+		kernel0[k-1-i][0]=kernel0[i][0];
+
+		kernel1[0][k-1-i]=kernel1[0][i];
+
+	}
+
+	int p=(k-1)/2;		//padding
+
+
 	//reading the PPM file line by line
 	ifstream infile;
 	infile.open(argv[1]);
@@ -57,11 +91,20 @@ int main(int argc, char* argv[])
 
 
 	//storing the pixels as 2d images
-	pixel **Pixel = (pixel**)malloc(img_ht*sizeof(pixel*));
+	pixel **Pixel = (pixel**)malloc((img_ht+2*p)*sizeof(pixel*));
 	
-	for(int i=0;i<img_ht;i++)
-	Pixel[i]=(pixel*)malloc(img_wd*sizeof(pixel));
+	for(int i=0;i<(img_ht+2*p);i++)
+	Pixel[i]=(pixel*)malloc((img_wd+2*p)*sizeof(pixel));
 
+	for(int i=0;i<img_wd+2*p;i++)
+	{
+		for(int j=0;j<img_ht+2*p;j++)
+		{
+			Pixel[j][i].r=0;
+			Pixel[j][i].g=0;
+			Pixel[j][i].b=0;
+		}
+	}
 	
 
 	unsigned int pix_cnt=0;	
@@ -86,59 +129,28 @@ int main(int argc, char* argv[])
 				//cout<<r<<" "<<c<<" "<<img_ht<<" "<<img_wd<<" "<<pix_cnt<<endl;
 				if(cnt%3==0)
 				{		
-					Pixel[r][c].r=val;
+					Pixel[r+p][c+p].r=val;
 					// cout<<val<<" ";
 				}
 				if(cnt%3==1)
 				{
-					Pixel[r][c].g=val;
+					Pixel[r+p][c+p].g=val;
 				}
 				if(cnt%3==2)
 				{
-					Pixel[r][c].b=val;
+					Pixel[r+p][c+p].b=val;
 					pix_cnt++;
 				}
 				cnt++;
 			}	
 		} 
 		line_count++;		
-		
 	}
 	
-	cout<<Pixel[img_ht-1][img_wd-1].r<<" "<<Pixel[img_ht-1][img_wd-1].g<<" "<<Pixel[img_ht-1][img_wd-1].b<<endl;
+	//cout<<Pixel[img_ht-1][img_wd-1].r<<" "<<Pixel[img_ht-1][img_wd-1].g<<" "<<Pixel[img_ht-1][img_wd-1].b<<endl;
 	//Pixels have been stored successfully
 
 
-	//Getting the kernel
-	int k=6*sigma;//sigma might have fractional part
-
-	if(k%2==0) k++; //odd k
-
-	float **kernel0 = (float **)malloc(k * sizeof(float*)); //x based gaussian
-	float **kernel1 = (float **)malloc(1* sizeof(float*));	//y based gaussian
-
-	for(int i=0;i<k;i++)
-		kernel0[i]=(float*)malloc(1*sizeof(float));
-	
-	kernel1[0]=(float*)malloc(k*sizeof(float));
-
-	float constant=sqrt(2*M_PI*sigma*sigma);
-
-	int mid=floor(k/2);
-	kernel0[mid][0]=1/constant;
-	kernel1[0][mid]=1/constant;
-
-	for(int i=0;i<floor(k/2);i++)	//using symmetry from center
-	{
-		kernel0[i][0]=(exp(-(floor(k/2)-i)*(floor(k/2)-i)))/constant;
-
-		kernel1[0][i]=kernel0[i][0];
-
-		kernel0[k-1-i][0]=kernel0[i][0];
-
-		kernel1[0][k-1-i]=kernel1[0][i];
-
-	}
 
 	//perform convolution
 
