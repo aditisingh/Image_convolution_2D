@@ -15,6 +15,22 @@ struct  pixel
 	unsigned int b;
 };
 
+pixel padding(pixel** Pixel_val, int x_coord, int y_coord, int img_width, int img_height) //that's for giving pixel values channel wise
+{
+	pixel Px;
+	Px.r=0; Px.g=0; Px.b=0;
+	if(x_coord>=img_width)
+		return Px;
+	else if(x_coord<0)
+		return Px;
+	else if(y_coord>=img_height)
+		return Px;
+	else if(y_coord<0)
+		return Px;
+	else	
+		return Pixel_val[y_coord][x_coord];
+}
+
 int main(int argc, char* argv[])
 {
 	if(argc != 3) //there should be three arguments
@@ -23,12 +39,12 @@ int main(int argc, char* argv[])
 	int sigma = atoi(argv[2]); 
     
 	//Getting the kernel
-	int k=6*sigma;//sigma might have fractional part
+	int k=floor(6*sigma);//sigma might have fractional part
 
 	if(k%2==0) k++; //odd k
 
-	float **kernel0 = (float **)malloc(k * sizeof(float*)); //x based gaussian
-	float **kernel1 = (float **)malloc(1* sizeof(float*));	//y based gaussian
+	float **kernel0 = (float **)malloc(k * sizeof(float*)); //y based gaussian
+	float **kernel1 = (float **)malloc(1* sizeof(float*));	//x based gaussian
 
 	for(int i=0;i<k;i++)
 		kernel0[i]=(float*)malloc(1*sizeof(float));
@@ -53,7 +69,7 @@ int main(int argc, char* argv[])
 
 	}
 
-	int p=(k-1)/2;		//padding
+	//int p=(k-1)/2;		//padding
 
 
 	//reading the PPM file line by line
@@ -91,7 +107,7 @@ int main(int argc, char* argv[])
 
 
 	//storing the pixels as 2d images
-	pixel **Pixel = (pixel**)malloc((img_ht+2*p)*sizeof(pixel*));
+	/*pixel **Pixel = (pixel**)malloc((img_ht+2*p)*sizeof(pixel*));
 	
 	for(int i=0;i<(img_ht+2*p);i++)
 	Pixel[i]=(pixel*)malloc((img_wd+2*p)*sizeof(pixel));
@@ -105,7 +121,14 @@ int main(int argc, char* argv[])
 			Pixel[j][i].b=0;
 		}
 	}
+	*/
+	pixel **Pixel = (pixel**)malloc((img_ht)*sizeof(pixel*));
 	
+	for(int i=0;i<(img_ht);i++)
+	Pixel[i]=(pixel*)malloc((img_wd)*sizeof(pixel));
+
+	
+
 
 	unsigned int pix_cnt=0;	
 	getline(infile,line); //this stores max value
@@ -129,16 +152,16 @@ int main(int argc, char* argv[])
 				//cout<<r<<" "<<c<<" "<<img_ht<<" "<<img_wd<<" "<<pix_cnt<<endl;
 				if(cnt%3==0)
 				{		
-					Pixel[r+p][c+p].r=val;
+					Pixel[r][c].r=val;//Pixel[r+p][c+p].r=val;
 					// cout<<val<<" ";
 				}
 				if(cnt%3==1)
 				{
-					Pixel[r+p][c+p].g=val;
+					Pixel[r][c].g=val;
 				}
 				if(cnt%3==2)
 				{
-					Pixel[r+p][c+p].b=val;
+					Pixel[r][c].b=val;
 					pix_cnt++;
 				}
 				cnt++;
@@ -146,7 +169,7 @@ int main(int argc, char* argv[])
 		} 
 		line_count++;		
 	}
-	
+	cout<<"%";
 	//cout<<Pixel[img_ht-1][img_wd-1].r<<" "<<Pixel[img_ht-1][img_wd-1].g<<" "<<Pixel[img_ht-1][img_wd-1].b<<endl;
 	//Pixels have been stored successfully
 
@@ -154,6 +177,36 @@ int main(int argc, char* argv[])
 
 	//perform convolution
 
+	//pixel **Pixel_res1 = (pixel **)malloc((img_ht+2*p) * sizeof(pixel*)); 
+	pixel **Pixel_tmp = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
+	
+	for(int i=0;i<(img_ht);i++)
+		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
+
+	cout<<"1";
+	for(int i=0;i<(img_wd);i++)
+	{		
+		for(int j=0; j<img_ht;j++)
+		{
+			
+			float tmp_r=0, tmp_g=0, tmp_b=0;
+			for(int l=-(k-1)/2;l<=(k-1)/2;l++)
+			{
+				cout<<i<<" "<<j<<" "<<img_ht<<" "<<img_wd<<endl;
+				pixel pix_val=padding(Pixel, i+l, j, img_wd, img_ht);
+				tmp_r+=pix_val.r * kernel0[l+(k-1)/2][0];
+				tmp_b+=pix_val.b * kernel0[l+(k-1)/2][0];
+				tmp_g+=pix_val.g * kernel0[l+(k-1)/2][0];
+			}
+			Pixel_tmp[i][j].r=tmp_r;
+			Pixel_tmp[i][j].g=tmp_g;
+			Pixel_tmp[i][j].b=tmp_b;
+		
+		}
+	}
+
+	
 
 	return 0;
 }
+
