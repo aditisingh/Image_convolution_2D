@@ -183,24 +183,24 @@ int main(int argc, char* argv[])
 	for(int i=0;i<(img_ht);i++)
 		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
 
-	cout<<"1";
-	for(int i=0;i<(img_wd);i++)
+	
+	for(int j=0;j<(img_ht);j++)
 	{		
-		for(int j=0; j<img_ht;j++)
-		{
+		for(int i=0; i<img_wd;i++)
+		{cout<<i<<" "<<j<<" "<<img_ht<<" "<<img_wd<<" "<<endl;	
 			
 			float tmp_r=0, tmp_g=0, tmp_b=0;
 			for(int l=-(k-1)/2;l<=(k-1)/2;l++)
 			{
-				cout<<i<<" "<<j<<" "<<img_ht<<" "<<img_wd<<endl;
-				pixel pix_val=padding(Pixel, i+l, j, img_wd, img_ht);
+				
+				pixel pix_val=padding(Pixel, i, j+l, img_wd, img_ht);
 				tmp_r+=pix_val.r * kernel0[l+(k-1)/2][0];
 				tmp_b+=pix_val.b * kernel0[l+(k-1)/2][0];
 				tmp_g+=pix_val.g * kernel0[l+(k-1)/2][0];
 			}
-			Pixel_tmp[i][j].r=tmp_r;
-			Pixel_tmp[i][j].g=tmp_g;
-			Pixel_tmp[i][j].b=tmp_b;
+			Pixel_tmp[j][i].r=tmp_r;
+			Pixel_tmp[j][i].g=tmp_g;
+			Pixel_tmp[j][i].b=tmp_b;
 		
 		}
 	}
