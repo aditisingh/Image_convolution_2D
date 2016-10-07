@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
 	unsigned int pix_cnt=0;	
 	getline(infile,line); //this stores max value
 	unsigned int cnt=0;
-	unsigned int r,c;
+	unsigned int row,col;
 	istringstream iss3(line);
 	iss3>>word;
 	max_val=atoi(word.c_str());//max pixel value
@@ -155,26 +155,27 @@ int main(int argc, char* argv[])
 			if(pix_cnt<img_ht*img_wd)
 			{	
 				unsigned int val =(unsigned int)line[i];
-				r=floor(pix_cnt/img_wd);
-				c=pix_cnt%img_wd;
+				cout<<val<<" ";
+				row=floor(pix_cnt/img_wd);
+				col=pix_cnt%img_wd;
 				//cout<<r<<" "<<c<<" "<<img_ht<<" "<<img_wd<<" "<<pix_cnt<<endl;
 				if(cnt%3==0)
 				{		
-					Pixel[r][c].r=val;//Pixel[r+p][c+p].r=val;
-					// cout<<val<<" ";
+					Pixel[row][col].r=val;//Pixel[r+p][c+p].r=val;
+					 
 				}
 				if(cnt%3==1)
 				{
-					Pixel[r][c].g=val;
+					Pixel[row][col].g=val;
 				}
 				if(cnt%3==2)
 				{
-					Pixel[r][c].b=val;
+					Pixel[row][col].b=val;
 					pix_cnt++;
 				}
 				cnt++;
 			}	
-		} 
+		} cout<<endl;	
 		line_count++;		
 	}
 	
@@ -191,26 +192,30 @@ int main(int argc, char* argv[])
 	for(int i=0;i<(img_ht);i++)
 		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
 
+	cout<<Pixel[0][0].r<<endl;	
 	//vertical convolution
-	for(int j=0;j<(img_ht);j++)
+	for(int j=0;j<2;j++)
 	{		
-		for(int i=0; i<img_wd;i++)
+		for(int i=0; i<2;i++)
 		{
 			float tmp_r=0, tmp_g=0, tmp_b=0;
 			for(int l=-(k-1)/2;l<=(k-1)/2;l++)
-			{
+			{	
 				pixel pix_val=padding(Pixel, i, j+l, img_wd, img_ht);
+				cout<<pix_val.r<<" "<<pix_val.g<<" "<<pix_val.b<<" "<<i<<" "<<j+l<<" "<<endl;
 				tmp_r+=pix_val.r * kernel0[l+(k-1)/2][0];
 				tmp_b+=pix_val.b * kernel0[l+(k-1)/2][0];
 				tmp_g+=pix_val.g * kernel0[l+(k-1)/2][0];
 			}
-			Pixel_tmp[j][i].r=tmp_r;
-			Pixel_tmp[j][i].g=tmp_g;
-			Pixel_tmp[j][i].b=tmp_b;
+			Pixel_tmp[j][i].r=floor(tmp_r);
+			Pixel_tmp[j][i].g=floor(tmp_g);
+			Pixel_tmp[j][i].b=floor(tmp_b);
+			
 		
 		}
 	}
 
+	cout<<Pixel_tmp[0][0].r<<endl;
 	pixel **Pixel_res = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
 	
 	for(int i=0;i<(img_ht);i++)
@@ -254,4 +259,5 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
+
 
