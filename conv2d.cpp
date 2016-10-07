@@ -69,6 +69,13 @@ int main(int argc, char* argv[])
 
 	}
 
+	/*for(int i=0; i<k;i++)
+	{	
+		for(int j=0;j<k;j++)
+		cout<<kernel0[i][0]*kernel1[0][j]<<" ";
+		cout<<endl;
+	}*/ //Verified kernel implementation
+
 	//int p=(k-1)/2;		//padding
 
 
@@ -169,7 +176,7 @@ int main(int argc, char* argv[])
 		} 
 		line_count++;		
 	}
-	cout<<"%";
+	
 	//cout<<Pixel[img_ht-1][img_wd-1].r<<" "<<Pixel[img_ht-1][img_wd-1].g<<" "<<Pixel[img_ht-1][img_wd-1].b<<endl;
 	//Pixels have been stored successfully
 
@@ -183,16 +190,14 @@ int main(int argc, char* argv[])
 	for(int i=0;i<(img_ht);i++)
 		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
 
-	
+	//vertical convolution
 	for(int j=0;j<(img_ht);j++)
 	{		
 		for(int i=0; i<img_wd;i++)
-		{cout<<i<<" "<<j<<" "<<img_ht<<" "<<img_wd<<" "<<endl;	
-			
+		{
 			float tmp_r=0, tmp_g=0, tmp_b=0;
 			for(int l=-(k-1)/2;l<=(k-1)/2;l++)
 			{
-				
 				pixel pix_val=padding(Pixel, i, j+l, img_wd, img_ht);
 				tmp_r+=pix_val.r * kernel0[l+(k-1)/2][0];
 				tmp_b+=pix_val.b * kernel0[l+(k-1)/2][0];
@@ -205,6 +210,44 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	//horizontal convolution
+	for(int i=0; i<img_wd;i++)
+	{
+		for(int j=0;j<img_ht;j++)
+		{
+			float tmp_r=0, tmp_g=0, tmp_b=0;
+			for(int l=-(k-1)/2; l<=(k-1)/2;l++)
+			{
+				pixel pix_val=padding(Pixel_tmp, i+l, j, img_wd, img_ht);
+				tmp_r+=pix_val.r * kernel1[0][l+(k-1)/2];
+				tmp_b+=pix_val.b * kernel1[0][l+(k-1)/2];
+				tmp_g+=pix_val.g * kernel1[0][l+(k-1)/2];
+			}
+			Pixel[j][i].r=tmp_r;
+			Pixel[j][i].g=tmp_g;
+			Pixel[j][i].b=tmp_b;
+		
+		}
+	}
+
+	//writing this to PPM file
+	ofstream ofs;
+	ofs.open("output.ppm", ofstream::out);
+	ofs<<"P6"<<endl;
+	ofs<<"# File after convolution"<<endl;
+	ofs<<img_wd<<" "<<img_ht<<endl;	//check if ASCII conversion is needed
+	ofs<<max_val<<endl;
+	
+	for(int j=0; j <img_ht;j++)
+	{
+		for (int i=0; i<img_wd;i++)
+		{
+			ofs<<Pixel[j][i].r<<Pixel[j][i].g<<Pixel[j][i].b;
+		}
+		ofs<<endl;
+	}
+	
+	
 	
 
 	return 0;
