@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+
 using namespace std;
 
 struct  pixel
@@ -185,7 +186,7 @@ int main(int argc, char* argv[])
 	//perform convolution
 
 	//pixel **Pixel_res1 = (pixel **)malloc((img_ht+2*p) * sizeof(pixel*)); 
-	/*pixel **Pixel_tmp = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
+	pixel **Pixel_tmp = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
 	
 	for(int i=0;i<(img_ht);i++)
 		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
@@ -210,6 +211,11 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	pixel **Pixel_res = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
+	
+	for(int i=0;i<(img_ht);i++)
+		Pixel_res[i]=(pixel*)malloc(img_wd*sizeof(pixel));
+
 	//horizontal convolution
 	for(int i=0; i<img_wd;i++)
 	{
@@ -220,34 +226,30 @@ int main(int argc, char* argv[])
 			{
 				pixel pix_val=padding(Pixel_tmp, i+l, j, img_wd, img_ht);
 				tmp_r+=pix_val.r * kernel1[0][l+(k-1)/2];
-				tmp_b+=pix_val.b * kernel1[0][l+(k-1)/2];
 				tmp_g+=pix_val.g * kernel1[0][l+(k-1)/2];
+				tmp_b+=pix_val.b * kernel1[0][l+(k-1)/2];
 			}
-			Pixel[j][i].r=tmp_r;
-			Pixel[j][i].g=tmp_g;
-			Pixel[j][i].b=tmp_b;
+			Pixel_res[j][i].r=tmp_r;
+			Pixel_res[j][i].g=tmp_g;
+			Pixel_res[j][i].b=tmp_b;
 		
 		}
-	}*/
+	}
 
 	//writing this to PPM file
 	ofstream ofs;
 	ofs.open("output.ppm", ofstream::out);
-	ofs<<"P6"<<endl;
-	ofs<<"# File after convolution"<<endl;
-	ofs<<img_wd<<" "<<img_ht<<endl;	//check if ASCII conversion is needed
-	ofs<<max_val<<endl;
+	ofs<<"P6\n"<<img_wd<<" "<<img_ht<<"\n"<<max_val<<"\n";
 	
 	for(int j=0; j <img_ht;j++)
 	{
 		for (int i=0; i<img_wd;i++)
 		{
-			ofs<<static_cast<char>(Pixel[j][i].r)<<static_cast<char>(Pixel[j][i].g)<<static_cast<char>(Pixel[j][i].b);	//write as ascii
+			ofs<<static_cast<unsigned char>(Pixel_tmp[j][i].r)<<static_cast<unsigned char>(Pixel_tmp[j][i].g)<<static_cast<unsigned char>(Pixel_tmp[j][i].b);	//write as ascii
 		}
-		ofs<<endl;
 	}
 	
-	
+	ofs.close();
 	
 
 	return 0;
