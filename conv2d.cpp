@@ -185,13 +185,13 @@ int main(int argc, char* argv[])
 	//perform convolution
 
 	//pixel **Pixel_res1 = (pixel **)malloc((img_ht+2*p) * sizeof(pixel*)); 
-	pixel **Pixel_tmp = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
+	/*pixel **Pixel_tmp = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
 	
 	for(int i=0;i<(img_ht);i++)
 		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
 
 	//vertical convolution
-	/*for(int j=0;j<(img_ht);j++)
+	for(int j=0;j<(img_ht);j++)
 	{		
 		for(int i=0; i<img_wd;i++)
 		{
