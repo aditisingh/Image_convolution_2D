@@ -191,7 +191,7 @@ int main(int argc, char* argv[])
 		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
 
 	//vertical convolution
-	for(int j=0;j<(img_ht);j++)
+	/*for(int j=0;j<(img_ht);j++)
 	{		
 		for(int i=0; i<img_wd;i++)
 		{
@@ -228,7 +228,7 @@ int main(int argc, char* argv[])
 			Pixel[j][i].b=tmp_b;
 		
 		}
-	}
+	}*/
 
 	//writing this to PPM file
 	ofstream ofs;
@@ -242,7 +242,7 @@ int main(int argc, char* argv[])
 	{
 		for (int i=0; i<img_wd;i++)
 		{
-			ofs<<Pixel[j][i].r<<Pixel[j][i].g<<Pixel[j][i].b;
+			ofs<<static_cast<char>(Pixel[j][i].r)<<static_cast<char>(Pixel[j][i].g)<<static_cast<char>(Pixel[j][i].b);	//write as ascii
 		}
 		ofs<<endl;
 	}
