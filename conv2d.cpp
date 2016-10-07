@@ -5,15 +5,16 @@
 #include <sstream>
 #include <stdlib.h>
 #include <math.h>
-
+#include <time.h>
+#include <ctime>
 
 using namespace std;
 
 struct  pixel
 {
-	unsigned int r;
-	unsigned int g;
-	unsigned int b;
+	int r;
+	int g;
+	int b;
 };
 
 pixel padding(pixel** Pixel_val, int x_coord, int y_coord, int img_width, int img_height) //that's for giving pixel values channel wise
@@ -34,6 +35,7 @@ pixel padding(pixel** Pixel_val, int x_coord, int y_coord, int img_width, int im
 
 int main(int argc, char* argv[])
 {
+	time_t start=time(NULL);
 	if(argc != 3) //there should be three arguments
 	return 1; //exit and return an error
 	
@@ -69,15 +71,6 @@ int main(int argc, char* argv[])
 		kernel1[0][k-1-i]=kernel1[0][i];
 
 	}
-
-	/*for(int i=0; i<k;i++)
-	{	
-		for(int j=0;j<k;j++)
-		cout<<kernel0[i][0]*kernel1[0][j]<<" ";
-		cout<<endl;
-	}*/ //Verified kernel implementation
-
-	//int p=(k-1)/2;		//padding
 
 
 	//reading the PPM file line by line
@@ -115,21 +108,6 @@ int main(int argc, char* argv[])
 
 
 	//storing the pixels as 2d images
-	/*pixel **Pixel = (pixel**)malloc((img_ht+2*p)*sizeof(pixel*));
-	
-	for(int i=0;i<(img_ht+2*p);i++)
-	Pixel[i]=(pixel*)malloc((img_wd+2*p)*sizeof(pixel));
-
-	for(int i=0;i<img_wd+2*p;i++)
-	{
-		for(int j=0;j<img_ht+2*p;j++)
-		{
-			Pixel[j][i].r=0;
-			Pixel[j][i].g=0;
-			Pixel[j][i].b=0;
-		}
-	}
-	*/
 	pixel **Pixel = (pixel**)malloc((img_ht)*sizeof(pixel*));
 	
 	for(int i=0;i<(img_ht);i++)
@@ -145,20 +123,21 @@ int main(int argc, char* argv[])
 	istringstream iss3(line);
 	iss3>>word;
 	max_val=atoi(word.c_str());//max pixel value
-
+	unsigned int val;
 	while (getline(infile, line))
 	{
 		istringstream iss4(line);
-		
 		for (int i=0; i<=line.length();i++)
 		{
+			
 			if(pix_cnt<img_ht*img_wd)
 			{	
-				unsigned int val =(unsigned int)line[i];
-				cout<<val<<" ";
+				val =(int)line[i];
+				if(val<0) val=256-val;
+				val=(val>=0)?(val):(256-val);	//else it wraps around max value of int
 				row=floor(pix_cnt/img_wd);
 				col=pix_cnt%img_wd;
-				//cout<<r<<" "<<c<<" "<<img_ht<<" "<<img_wd<<" "<<pix_cnt<<endl;
+				
 				if(cnt%3==0)
 				{		
 					Pixel[row][col].r=val;//Pixel[r+p][c+p].r=val;
@@ -171,38 +150,32 @@ int main(int argc, char* argv[])
 				if(cnt%3==2)
 				{
 					Pixel[row][col].b=val;
-					pix_cnt++;
+					pix_cnt++;//cout<<endl;
 				}
 				cnt++;
-			}	
-		} cout<<endl;	
+			}
+		} 	
 		line_count++;		
 	}
 	
-	//cout<<Pixel[img_ht-1][img_wd-1].r<<" "<<Pixel[img_ht-1][img_wd-1].g<<" "<<Pixel[img_ht-1][img_wd-1].b<<endl;
 	//Pixels have been stored successfully
-
-
 
 	//perform convolution
 
-	//pixel **Pixel_res1 = (pixel **)malloc((img_ht+2*p) * sizeof(pixel*)); 
 	pixel **Pixel_tmp = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
 	
 	for(int i=0;i<(img_ht);i++)
 		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
-
-	cout<<Pixel[0][0].r<<endl;	
+	
 	//vertical convolution
-	for(int j=0;j<2;j++)
+	for(int j=0;j<img_ht;j++)
 	{		
-		for(int i=0; i<2;i++)
+		for(int i=0; i<img_wd;i++)
 		{
 			float tmp_r=0, tmp_g=0, tmp_b=0;
 			for(int l=-(k-1)/2;l<=(k-1)/2;l++)
 			{	
 				pixel pix_val=padding(Pixel, i, j+l, img_wd, img_ht);
-				cout<<pix_val.r<<" "<<pix_val.g<<" "<<pix_val.b<<" "<<i<<" "<<j+l<<" "<<endl;
 				tmp_r+=pix_val.r * kernel0[l+(k-1)/2][0];
 				tmp_b+=pix_val.b * kernel0[l+(k-1)/2][0];
 				tmp_g+=pix_val.g * kernel0[l+(k-1)/2][0];
@@ -215,7 +188,6 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	cout<<Pixel_tmp[0][0].r<<endl;
 	pixel **Pixel_res = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
 	
 	for(int i=0;i<(img_ht);i++)
@@ -240,6 +212,7 @@ int main(int argc, char* argv[])
 		
 		}
 	}
+	
 
 	//writing this to PPM file
 	ofstream ofs;
@@ -250,12 +223,13 @@ int main(int argc, char* argv[])
 	{
 		for (int i=0; i<img_wd;i++)
 		{
-			ofs<<static_cast<unsigned char>(Pixel_tmp[j][i].r)<<static_cast<unsigned char>(Pixel_tmp[j][i].g)<<static_cast<unsigned char>(Pixel_tmp[j][i].b);	//write as ascii
+			ofs<<static_cast<unsigned char>(Pixel_res[j][i].r)<<static_cast<unsigned char>(Pixel_res[j][i].g)<<static_cast<unsigned char>(Pixel_res[j][i].b);	//write as ascii
 		}
 	}
 	
 	ofs.close();
-	
+	time_t end=time(NULL);
+	cout<<"execution time: "<<double(end-start)<<" sec"<<endl;
 
 	return 0;
 }
