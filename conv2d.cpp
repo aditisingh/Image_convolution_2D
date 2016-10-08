@@ -54,15 +54,16 @@ int main(int argc, char* argv[])
 	
 	kernel1[0]=(float*)malloc(k*sizeof(float));
 
-	float constant=sqrt(2*M_PI*sigma*sigma);
+	float constant1=sqrt(2*M_PI*sigma*sigma);
+	float constant2=2*sigma*sigma;
 
 	int mid=floor(k/2);
-	kernel0[mid][0]=1/constant;
-	kernel1[0][mid]=1/constant;
+	kernel0[mid][0]=1/constant1;
+	kernel1[0][mid]=1/constant1;
 
 	for(int i=0;i<floor(k/2);i++)	//using symmetry from center
 	{
-		kernel0[i][0]=(exp(-(floor(k/2)-i)*(floor(k/2)-i)))/constant;
+		kernel0[i][0]=((exp(-(floor(k/2)-i)*(floor(k/2)-i)/constant2)))/constant1;
 
 		kernel1[0][i]=kernel0[i][0];
 
@@ -71,7 +72,7 @@ int main(int argc, char* argv[])
 		kernel1[0][k-1-i]=kernel1[0][i];
 
 	}
-
+	
 	//reading the PPM file line by line
 	ifstream infile;
 	infile.open(argv[1]);
@@ -150,7 +151,6 @@ int main(int argc, char* argv[])
 		} 	
 		line_count++;		
 	}
-	cout<<(int)Pixel[img_ht/2][img_wd/2].r<<" "<<(int)Pixel[img_ht/2][img_wd/2].g<<" "<<(int)Pixel[img_ht/2][img_wd/2].b<<" "<<endl;
 
 	
 	//Pixels have been stored successfully
@@ -168,20 +168,21 @@ int main(int argc, char* argv[])
 			tmp_r=0, tmp_g=0, tmp_b=0;
 			for(int l=0;l<k;l++)
 			{	
-				pixel pix_val=padding(Pixel, i, j+l, img_wd, img_ht);
+				pixel pix_val=padding(Pixel, i, j+l-(k-1)/2, img_wd, img_ht);
 				tmp_r+=pix_val.r * kernel0[l][0];
 				tmp_b+=pix_val.b * kernel0[l][0];
 				tmp_g+=pix_val.g * kernel0[l][0];
+				//cout<<tmp_r<<" "<<tmp_g<<" "<<tmp_b;
 			}
 			Pixel_tmp[j][i].r=tmp_r;
 			Pixel_tmp[j][i].g=tmp_g;
 			Pixel_tmp[j][i].b=tmp_b;
-			//cout<<(int)Pixel_tmp[j][i].r<<" "<<(int)Pixel_tmp[j][i].g<<" "<<(int)Pixel_tmp[j][i].b<<" "<<endl;
+			//cout<<endl<<j<<" "<<i<<" "<<(int)Pixel[j][i].r<<" "<<(int)Pixel[j][i].g<<" "<<(int)Pixel[j][i].b<<" "<<(int)Pixel_tmp[j][i].r<<" "<<(int)Pixel_tmp[j][i].g<<" "<<(int)Pixel_tmp[j][i].b<<" "<<endl;
 
 		
 		}
 	}
-	cout<<(int)Pixel_tmp[img_ht/2][img_wd/2].r<<" "<<(int)Pixel_tmp[img_ht/2][img_wd/2].g<<" "<<(int)Pixel_tmp[img_ht/2][img_wd/2].b<<" "<<endl;
+	//cout<<(int)Pixel_tmp[img_ht/2][img_wd/2].r<<" "<<(int)Pixel_tmp[img_ht/2][img_wd/2].g<<" "<<(int)Pixel_tmp[img_ht/2][img_wd/2].b<<" "<<endl;
 
 	/*pixel **Pixel_res = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
 	
@@ -196,7 +197,7 @@ int main(int argc, char* argv[])
 			tmp_r=0, tmp_g=0, tmp_b=0;
 			for(int l=0; l<k;l++)
 			{
-				pixel pix_val=padding(Pixel_tmp, i+l, j, img_wd, img_ht);
+				pixel pix_val=padding(Pixel_tmp, i+l-(k-1)/2, j, img_wd, img_ht);
 				tmp_r+=pix_val.r * kernel1[0][l];
 				tmp_g+=pix_val.g * kernel1[0][l];
 				tmp_b+=pix_val.b * kernel1[0][l];
