@@ -12,9 +12,9 @@ using namespace std;
 
 struct  pixel
 {
-	int r;
-	int g;
-	int b;
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
 };
 
 pixel padding(pixel** Pixel_val, int x_coord, int y_coord, int img_width, int img_height) //that's for giving pixel values channel wise
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 	if(argc != 3) //there should be three arguments
 	return 1; //exit and return an error
 	
-	int sigma = atoi(argv[2]); 
+	float sigma = atof(argv[2]); 
     
 	//Getting the kernel
 	int k=floor(6*sigma);//sigma might have fractional part
@@ -72,7 +72,6 @@ int main(int argc, char* argv[])
 
 	}
 
-
 	//reading the PPM file line by line
 	ifstream infile;
 	infile.open(argv[1]);
@@ -81,7 +80,6 @@ int main(int argc, char* argv[])
 	int img_wd, img_ht;
 	int max_val;
 	int line_count=0;
-	int numpixels;
 
 	//line one contains P6, line 2 mentions about gimp version, line 3 stores the height and width
 	getline(infile, line);
@@ -104,115 +102,113 @@ int main(int argc, char* argv[])
 	img_wd=atoi(word.c_str());
 	iss2>>word;// this will be image height
 	img_ht=atoi(word.c_str());
-	numpixels=img_wd*img_ht;
-
 
 	//storing the pixels as 2d images
 	pixel **Pixel = (pixel**)malloc((img_ht)*sizeof(pixel*));
+	pixel **Pixel_tmp = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
 	
-	for(int i=0;i<(img_ht);i++)
-	Pixel[i]=(pixel*)malloc((img_wd)*sizeof(pixel));
+	for(int i=0;i<(img_ht);i++){
+		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
+		Pixel[i]=(pixel*)malloc((img_wd)*sizeof(pixel));}
 
-	
+	int pix_cnt=0, cnt=0, row,col;
 
-
-	unsigned int pix_cnt=0;	
 	getline(infile,line); //this stores max value
-	unsigned int cnt=0;
-	unsigned int row,col;
+	
 	istringstream iss3(line);
 	iss3>>word;
 	max_val=atoi(word.c_str());//max pixel value
+
 	unsigned int val;
+
 	while (getline(infile, line))
 	{
 		istringstream iss4(line);
 		for (int i=0; i<=line.length();i++)
 		{
-			
 			if(pix_cnt<img_ht*img_wd)
 			{	
-				val =(int)line[i];
-				if(val<0) val=256-val;
-				val=(val>=0)?(val):(256-val);	//else it wraps around max value of int
+				val =((int)line[i]);
 				row=floor(pix_cnt/img_wd);
 				col=pix_cnt%img_wd;
 				
 				if(cnt%3==0)
 				{		
-					Pixel[row][col].r=val;//Pixel[r+p][c+p].r=val;
-					 
+					Pixel[row][col].r=val;
 				}
-				if(cnt%3==1)
+				else if(cnt%3==1)
 				{
 					Pixel[row][col].g=val;
 				}
-				if(cnt%3==2)
+				else
 				{
 					Pixel[row][col].b=val;
-					pix_cnt++;//cout<<endl;
+					pix_cnt++;
 				}
 				cnt++;
 			}
 		} 	
 		line_count++;		
 	}
+	cout<<(int)Pixel[img_ht/2][img_wd/2].r<<" "<<(int)Pixel[img_ht/2][img_wd/2].g<<" "<<(int)Pixel[img_ht/2][img_wd/2].b<<" "<<endl;
+
 	
 	//Pixels have been stored successfully
 
 	//perform convolution
 
-	pixel **Pixel_tmp = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
 	
-	for(int i=0;i<(img_ht);i++)
-		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
-	
+	float tmp_r, tmp_g, tmp_b;
+
 	//vertical convolution
 	for(int j=0;j<img_ht;j++)
 	{		
 		for(int i=0; i<img_wd;i++)
 		{
-			float tmp_r=0, tmp_g=0, tmp_b=0;
-			for(int l=-(k-1)/2;l<=(k-1)/2;l++)
+			tmp_r=0, tmp_g=0, tmp_b=0;
+			for(int l=0;l<k;l++)
 			{	
 				pixel pix_val=padding(Pixel, i, j+l, img_wd, img_ht);
-				tmp_r+=pix_val.r * kernel0[l+(k-1)/2][0];
-				tmp_b+=pix_val.b * kernel0[l+(k-1)/2][0];
-				tmp_g+=pix_val.g * kernel0[l+(k-1)/2][0];
+				tmp_r+=pix_val.r * kernel0[l][0];
+				tmp_b+=pix_val.b * kernel0[l][0];
+				tmp_g+=pix_val.g * kernel0[l][0];
 			}
-			Pixel_tmp[j][i].r=floor(tmp_r);
-			Pixel_tmp[j][i].g=floor(tmp_g);
-			Pixel_tmp[j][i].b=floor(tmp_b);
-			
+			Pixel_tmp[j][i].r=tmp_r;
+			Pixel_tmp[j][i].g=tmp_g;
+			Pixel_tmp[j][i].b=tmp_b;
+			//cout<<(int)Pixel_tmp[j][i].r<<" "<<(int)Pixel_tmp[j][i].g<<" "<<(int)Pixel_tmp[j][i].b<<" "<<endl;
+
 		
 		}
 	}
+	cout<<(int)Pixel_tmp[img_ht/2][img_wd/2].r<<" "<<(int)Pixel_tmp[img_ht/2][img_wd/2].g<<" "<<(int)Pixel_tmp[img_ht/2][img_wd/2].b<<" "<<endl;
 
-	pixel **Pixel_res = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
+	/*pixel **Pixel_res = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
 	
 	for(int i=0;i<(img_ht);i++)
 		Pixel_res[i]=(pixel*)malloc(img_wd*sizeof(pixel));
-
+*/
 	//horizontal convolution
 	for(int i=0; i<img_wd;i++)
 	{
 		for(int j=0;j<img_ht;j++)
 		{
-			float tmp_r=0, tmp_g=0, tmp_b=0;
-			for(int l=-(k-1)/2; l<=(k-1)/2;l++)
+			tmp_r=0, tmp_g=0, tmp_b=0;
+			for(int l=0; l<k;l++)
 			{
 				pixel pix_val=padding(Pixel_tmp, i+l, j, img_wd, img_ht);
-				tmp_r+=pix_val.r * kernel1[0][l+(k-1)/2];
-				tmp_g+=pix_val.g * kernel1[0][l+(k-1)/2];
-				tmp_b+=pix_val.b * kernel1[0][l+(k-1)/2];
+				tmp_r+=pix_val.r * kernel1[0][l];
+				tmp_g+=pix_val.g * kernel1[0][l];
+				tmp_b+=pix_val.b * kernel1[0][l];
 			}
-			Pixel_res[j][i].r=tmp_r;
-			Pixel_res[j][i].g=tmp_g;
-			Pixel_res[j][i].b=tmp_b;
+			Pixel[j][i].r=tmp_r;
+			Pixel[j][i].g=tmp_g;
+			Pixel[j][i].b=tmp_b;
 		
 		}
 	}
 	
+	cout<<(int)Pixel[img_ht/2][img_wd/2].r<<" "<<(int)Pixel[img_ht/2][img_wd/2].g<<" "<<(int)Pixel[img_ht/2][img_wd/2].b<<" "<<endl;
 
 	//writing this to PPM file
 	ofstream ofs;
@@ -223,7 +219,7 @@ int main(int argc, char* argv[])
 	{
 		for (int i=0; i<img_wd;i++)
 		{
-			ofs<<static_cast<unsigned char>(Pixel_res[j][i].r)<<static_cast<unsigned char>(Pixel_res[j][i].g)<<static_cast<unsigned char>(Pixel_res[j][i].b);	//write as ascii
+			ofs<<Pixel_tmp[j][i].r<<Pixel_tmp[j][i].g<<Pixel_tmp[j][i].b;	//write as ascii
 		}
 	}
 	
