@@ -10,14 +10,15 @@
 
 using namespace std;
 
-struct  pixel
+struct  pixel //to store RGB values
 {
 	unsigned char r;
 	unsigned char g;
 	unsigned char b;
 };
 
-pixel padding(pixel** Pixel_val, int x_coord, int y_coord, int img_width, int img_height) //that's for giving pixel values channel wise
+pixel padding(pixel** Pixel_val, int x_coord, int y_coord, int img_width, int img_height) //padding the image,depending on pixel coordinates
+//can be replaced by reflect for better result //currently zero padding
 {
 	pixel Px;
 	Px.r=0; Px.g=0; Px.b=0;
@@ -35,16 +36,16 @@ pixel padding(pixel** Pixel_val, int x_coord, int y_coord, int img_width, int im
 
 int main(int argc, char* argv[])
 {
-	time_t start=time(NULL);
+	time_t start_of_code=time(NULL);
 	if(argc != 3) //there should be three arguments
 	return 1; //exit and return an error
 	
-	float sigma = atof(argv[2]); 
+	float sigma = atof(argv[2]); //standard deviation for the gaussian 
     
 	//Getting the kernel
 	int k=floor(6*sigma);//sigma might have fractional part
 
-	if(k%2==0) k++; //odd k
+	if(k%2==0) k++; //to make the size odd
 
 	float **kernel0 = (float **)malloc(k * sizeof(float*)); //y based gaussian
 	float **kernel1 = (float **)malloc(1* sizeof(float*));	//x based gaussian
@@ -54,14 +55,14 @@ int main(int argc, char* argv[])
 	
 	kernel1[0]=(float*)malloc(k*sizeof(float));
 
-	float constant1=sqrt(2*M_PI*sigma*sigma);
+	float constant1=sqrt(2*M_PI*sigma*sigma);//constants needed to define the kernel
 	float constant2=2*sigma*sigma;
 
 	int mid=floor(k/2);
 	kernel0[mid][0]=1/constant1;
 	kernel1[0][mid]=1/constant1;
 
-	for(int i=0;i<floor(k/2);i++)	//using symmetry from center
+	for(int i=0;i<floor(k/2);i++)	//using symmetry from center, to generate the separable kernels 
 	{
 		kernel0[i][0]=((exp(-(floor(k/2)-i)*(floor(k/2)-i)/constant2)))/constant1;
 
@@ -72,6 +73,8 @@ int main(int argc, char* argv[])
 		kernel1[0][k-1-i]=kernel1[0][i];
 
 	}
+	time_t kernel_generation=time(NULL); //find time taken for kernel generation
+
 	
 	//reading the PPM file line by line
 	ifstream infile;
@@ -87,9 +90,11 @@ int main(int argc, char* argv[])
 	istringstream iss1(line);
 
 	//reading first line to check format
-	string word;
-	iss1>>word;
-	if(word.compare("P6")!=0)	
+	int word;
+	string str1;
+
+	iss1>>str1;
+	if(str1.compare("P6")!=0)	//comparing magic number
 	{
 		cout<<"wrong file format"<<endl;
 		return 1;
@@ -100,9 +105,9 @@ int main(int argc, char* argv[])
 	getline(infile,line); //this stores image dims
 	istringstream iss2(line);
 	iss2>>word;// this will be image width
-	img_wd=atoi(word.c_str());
+	img_wd=word;
 	iss2>>word;// this will be image height
-	img_ht=atoi(word.c_str());
+	img_ht=word;
 
 	//storing the pixels as 2d images
 	pixel **Pixel = (pixel**)malloc((img_ht)*sizeof(pixel*));
@@ -112,13 +117,15 @@ int main(int argc, char* argv[])
 		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
 		Pixel[i]=(pixel*)malloc((img_wd)*sizeof(pixel));}
 
+
+
 	int pix_cnt=0, cnt=0, row,col;
 
 	getline(infile,line); //this stores max value
 	
 	istringstream iss3(line);
 	iss3>>word;
-	max_val=atoi(word.c_str());//max pixel value
+	max_val=word;//max pixel value
 
 	unsigned int val;
 
@@ -152,8 +159,8 @@ int main(int argc, char* argv[])
 		line_count++;		
 	}
 
-	
-	//Pixels have been stored successfully
+	time_t reading_file=time(NULL);
+
 
 	//perform convolution
 
@@ -172,23 +179,15 @@ int main(int argc, char* argv[])
 				tmp_r+=pix_val.r * kernel0[l][0];
 				tmp_b+=pix_val.b * kernel0[l][0];
 				tmp_g+=pix_val.g * kernel0[l][0];
-				//cout<<tmp_r<<" "<<tmp_g<<" "<<tmp_b;
 			}
 			Pixel_tmp[j][i].r=tmp_r;
 			Pixel_tmp[j][i].g=tmp_g;
 			Pixel_tmp[j][i].b=tmp_b;
-			//cout<<endl<<j<<" "<<i<<" "<<(int)Pixel[j][i].r<<" "<<(int)Pixel[j][i].g<<" "<<(int)Pixel[j][i].b<<" "<<(int)Pixel_tmp[j][i].r<<" "<<(int)Pixel_tmp[j][i].g<<" "<<(int)Pixel_tmp[j][i].b<<" "<<endl;
-
-		
 		}
 	}
-	//cout<<(int)Pixel_tmp[img_ht/2][img_wd/2].r<<" "<<(int)Pixel_tmp[img_ht/2][img_wd/2].g<<" "<<(int)Pixel_tmp[img_ht/2][img_wd/2].b<<" "<<endl;
-
-	/*pixel **Pixel_res = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
 	
-	for(int i=0;i<(img_ht);i++)
-		Pixel_res[i]=(pixel*)malloc(img_wd*sizeof(pixel));
-*/
+	time_t vertical_convolution=time(NULL);
+
 	//horizontal convolution
 	for(int i=0; i<img_wd;i++)
 	{
@@ -208,8 +207,8 @@ int main(int argc, char* argv[])
 		
 		}
 	}
-	
-	cout<<(int)Pixel[img_ht/2][img_wd/2].r<<" "<<(int)Pixel[img_ht/2][img_wd/2].g<<" "<<(int)Pixel[img_ht/2][img_wd/2].b<<" "<<endl;
+	time_t horizontal_convolution=time(NULL);
+
 
 	//writing this to PPM file
 	ofstream ofs;
@@ -220,14 +219,20 @@ int main(int argc, char* argv[])
 	{
 		for (int i=0; i<img_wd;i++)
 		{
-			ofs<<Pixel_tmp[j][i].r<<Pixel_tmp[j][i].g<<Pixel_tmp[j][i].b;	//write as ascii
+			ofs<<Pixel[j][i].r<<Pixel[j][i].g<<Pixel[j][i].b;	//write as ascii
 		}
 	}
 	
 	ofs.close();
 	time_t end=time(NULL);
-	cout<<"execution time: "<<double(end-start)<<" sec"<<endl;
 
+	//display time taken for different processes
+	cout<<" Total execution time: "<<double(end-start_of_code)<<" sec"<<endl;
+	cout<<" Saving the result:"<<double(end-horizontal_convolution)<<" sec"<<endl;
+	cout<<" horizontal convolution time:" <<double(horizontal_convolution-vertical_convolution)<<" sec"<<endl;
+	cout<<" vertical_convolution time: "<<double(vertical_convolution - reading_file)<<"sec"<<endl;
+	cout<<" File reading time:"<<double(reading_file - kernel_generation)<<" sec"<<endl;
+	cout<<" Kernel generation time:"<<double(kernel_generation - start_of_code)<<" sec"<<endl;
 	return 0;
 }
 
