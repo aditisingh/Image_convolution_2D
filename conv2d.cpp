@@ -168,9 +168,9 @@ int main(int argc, char* argv[])
 	float tmp_r, tmp_g, tmp_b;
 
 	//vertical convolution
-	for(int j=0;j<img_ht;j++)
+	for(int i=0; i<img_wd;i++ )
 	{		
-		for(int i=0; i<img_wd;i++)
+		for(int j=0;j<img_ht;j++)
 		{
 			tmp_r=0, tmp_g=0, tmp_b=0;
 			for(int l=0;l<k;l++)
@@ -189,9 +189,9 @@ int main(int argc, char* argv[])
 	time_t vertical_convolution=time(NULL);
 
 	//horizontal convolution
-	for(int i=0; i<img_wd;i++)
+	for(int j=0;j<img_ht;j++ )
 	{
-		for(int j=0;j<img_ht;j++)
+		for(int i=0; i<img_wd;i++)
 		{
 			tmp_r=0, tmp_g=0, tmp_b=0;
 			for(int l=0; l<k;l++)
