@@ -34,6 +34,57 @@ pixel padding(pixel** Pixel_val, int x_coord, int y_coord, int img_width, int im
 		return Pixel_val[y_coord][x_coord];
 }
 
+
+pixel** vertical_conv(pixel** Pixel_in, pixel** Pixel_out,int img_wd, int img_ht, float** kernel, int k)
+{
+	float tmp_r, tmp_g, tmp_b;
+
+	//vertical convolution
+	for(int i=0; i<img_wd;i++ )
+	{		
+		for(int j=0;j<img_ht;j++)
+		{
+			tmp_r=0, tmp_g=0, tmp_b=0;
+			for(int l=0;l<k;l++)
+			{	
+				pixel pix_val=padding(Pixel_in, i, j+l-(k-1)/2, img_wd, img_ht);
+				tmp_r+=pix_val.r * kernel[l][0];
+				tmp_b+=pix_val.b * kernel[l][0];
+				tmp_g+=pix_val.g * kernel[l][0];
+			}
+			Pixel_out[j][i].r=tmp_r;
+			Pixel_out[j][i].g=tmp_g;
+			Pixel_out[j][i].b=tmp_b;
+		}
+	}
+	return Pixel_out;
+}
+
+pixel** horizontal_conv(pixel** Pixel_in, pixel** Pixel_out, int img_wd, int img_ht, float** kernel, int k )
+{
+	float tmp_r, tmp_b, tmp_g;
+	//horizontal convolution
+	for(int j=0;j<img_ht;j++ )
+	{
+		for(int i=0; i<img_wd;i++)
+		{
+			tmp_r=0, tmp_g=0, tmp_b=0;
+			for(int l=0; l<k;l++)
+			{
+				pixel pix_val=padding(Pixel_in, i+l-(k-1)/2, j, img_wd, img_ht);
+				tmp_r+=pix_val.r * kernel1[0][l];
+				tmp_g+=pix_val.g * kernel1[0][l];
+				tmp_b+=pix_val.b * kernel1[0][l];
+			}
+			Pixel_out[j][i].r=tmp_r;
+			Pixel_out[j][i].g=tmp_g;
+			Pixel_out[j][i].b=tmp_b;
+		
+		}
+	}
+	return Pixel_out;
+}
+
 int main(int argc, char* argv[])
 {
 	time_t start_of_code=time(NULL);
@@ -162,51 +213,14 @@ int main(int argc, char* argv[])
 	time_t reading_file=time(NULL);
 
 
-	//perform convolution
+	//perform vertical convolution
 
-	
-	float tmp_r, tmp_g, tmp_b;
-
-	//vertical convolution
-	for(int i=0; i<img_wd;i++ )
-	{		
-		for(int j=0;j<img_ht;j++)
-		{
-			tmp_r=0, tmp_g=0, tmp_b=0;
-			for(int l=0;l<k;l++)
-			{	
-				pixel pix_val=padding(Pixel, i, j+l-(k-1)/2, img_wd, img_ht);
-				tmp_r+=pix_val.r * kernel0[l][0];
-				tmp_b+=pix_val.b * kernel0[l][0];
-				tmp_g+=pix_val.g * kernel0[l][0];
-			}
-			Pixel_tmp[j][i].r=tmp_r;
-			Pixel_tmp[j][i].g=tmp_g;
-			Pixel_tmp[j][i].b=tmp_b;
-		}
-	}
+	Pixel_tmp=vertical_conv(Pixel, Pixel_tmp,img_wd, img_ht,kernel0,k);
 	
 	time_t vertical_convolution=time(NULL);
 
-	//horizontal convolution
-	for(int j=0;j<img_ht;j++ )
-	{
-		for(int i=0; i<img_wd;i++)
-		{
-			tmp_r=0, tmp_g=0, tmp_b=0;
-			for(int l=0; l<k;l++)
-			{
-				pixel pix_val=padding(Pixel_tmp, i+l-(k-1)/2, j, img_wd, img_ht);
-				tmp_r+=pix_val.r * kernel1[0][l];
-				tmp_g+=pix_val.g * kernel1[0][l];
-				tmp_b+=pix_val.b * kernel1[0][l];
-			}
-			Pixel[j][i].r=tmp_r;
-			Pixel[j][i].g=tmp_g;
-			Pixel[j][i].b=tmp_b;
-		
-		}
-	}
+	Pixel=horizontal_conv(Pixel_tmp, Pixel, img_wd, img_ht, kernel1, k);
+
 	time_t horizontal_convolution=time(NULL);
 
 
