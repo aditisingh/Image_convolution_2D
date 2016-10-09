@@ -255,8 +255,8 @@ int main(int argc, char* argv[])
 	pixel **Pixel_tmp_gpu, **Pixel_gpu;
     
 
-	HANDLE_ERROR(cudaMalloc(&Pixel_tmp_gpu,img_ht*img_wd*sizeof(pixel*)));
-	HANDLE_ERROR(cudaMalloc(&Pixel_gpu,img_ht*img_wd*sizeof(pixel*)));
+	HANDLE_ERROR(cudaMalloc(&Pixel_tmp_gpu,img_wd*img_ht*sizeof(pixel)));
+	HANDLE_ERROR(cudaMalloc(&Pixel_gpu,img_wd*img_ht*sizeof(pixel)));
 
 
 	float **kernel0_gpu, **kernel1_gpu;
@@ -273,8 +273,8 @@ int main(int argc, char* argv[])
 
 	//copying needed data
 
-	HANDLE_ERROR(cudaMemcpy(Pixel_tmp_gpu,Pixel_tmp,img_wd*img_wd*sizeof(pixel),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(Pixel_gpu,Pixel,img_wd*img_wd*sizeof(pixel),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(Pixel_tmp_gpu,Pixel_tmp,img_wd*img_ht*sizeof(pixel),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(Pixel_gpu,Pixel,img_wd*img_ht*sizeof(pixel),cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(kernel0_gpu,kernel0,k*sizeof(float),cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(kernel1_gpu,kernel1,k*sizeof(float),cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(k_gpu,&k,sizeof(int),cudaMemcpyHostToDevice));
@@ -295,7 +295,7 @@ int main(int argc, char* argv[])
 	time_t horizontal_convolution=time(NULL);
 	cout<<" horizontal convolution time:" <<double(horizontal_convolution-vertical_convolution)<<" sec"<<endl;
 	HANDLE_ERROR(cudaMemcpy(Pixel,Pixel_gpu,img_wd*img_ht*sizeof(pixel),cudaMemcpyDeviceToHost));
-
+/*
 
 	//writing this to PPM file
 	ofstream ofs;
@@ -311,7 +311,7 @@ int main(int argc, char* argv[])
 	}
 	
 	
-	ofs.close();
+	ofs.close();*/
 	time_t end=time(NULL);
 	cout<<" Saving the result:"<<double(end-horizontal_convolution)<<" sec"<<endl;
 	
