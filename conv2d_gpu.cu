@@ -25,22 +25,22 @@ static void HandleError( cudaError_t err, const char *file, int line ) {
 	}
 }
 
+
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
 __device__ void padding(pixel** Pixel_val, int x_coord, int y_coord, int img_width, int img_height, pixel Px) //padding the image,depending on pixel coordinates, can be replaced by reflect for better result //currently zero padding
 {
-	Px.r=0; Px.g=0; Px.b=0;
 	if(x_coord<img_width && y_coord<img_height && x_coord>=0 && y_coord>=0)	
 		Px=Pixel_val[y_coord][x_coord];
 }
 
 
-__global__ void vertical_conv(pixel** Pixel_in, pixel** Pixel_out,int img_wd, int img_ht, float** kernel, int k)
+__global__ void vertical_conv(pixel** Pixel_in, pixel** Pixel_out,int img_wd, int img_ht, float** kernel, int k, size_t pitch)
 {
 	float tmp_r, tmp_g, tmp_b;
 	pixel pix_val;
-	int row=blockIdx.y*blockDim.y + threadIdx.y;
-
+	pix_val.r=0;pix_val.g=0;pix_val.b=0;
+	int row=blockIdx.y*blockDim.y + threadIdx.y;            
 	int col = blockIdx.x*blockDim.x + threadIdx.x;
 	if(row<img_ht && col<img_wd){
 		tmp_r=0, tmp_g=0, tmp_b=0;
@@ -63,6 +63,7 @@ __global__ void horizontal_conv(pixel** Pixel_in, pixel** Pixel_out, int img_wd,
 {
 	float tmp_r, tmp_b, tmp_g;
 	pixel pix_val;
+	pix_val.r=0;pix_val.g=0;pix_val.b=0;
 
 	//horizontal convolution
 	int row=blockIdx.y*blockDim.y + threadIdx.y;
@@ -249,53 +250,53 @@ int main(int argc, char* argv[])
 	dim3 DimGrid(ceil(img_wd/thread_block),ceil(img_ht/thread_block),1);
 	dim3 DimBlock(sqrt(prop.maxThreadsPerBlock),sqrt(prop.maxThreadsPerBlock),1);
 
-	int *k_gpu, *img_wd_gpu, *img_ht_gpu;
 	//allocating gpu memory
 
-	pixel **Pixel_tmp_gpu, **Pixel_gpu;
-    
 
-	HANDLE_ERROR(cudaMalloc(&Pixel_tmp_gpu,img_wd*img_ht*sizeof(pixel)));
-	HANDLE_ERROR(cudaMalloc(&Pixel_gpu,img_wd*img_ht*sizeof(pixel)));
+	pixel **Pixel_tmp_gpu;
 
+	pixel **Pixel_gpu;
+   
+
+	HANDLE_ERROR(cudaMalloc((void**)&Pixel_tmp_gpu,img_wd*img_ht*sizeof(pixel))); //allocate space for conv output
+	HANDLE_ERROR(cudaMalloc((void**)&Pixel_gpu,img_wd*img_ht*sizeof(pixel))); //allocate space for image on device
 
 	float **kernel0_gpu, **kernel1_gpu;
-
-	HANDLE_ERROR(cudaMalloc(&kernel0_gpu,k *1*sizeof(float*)));
-	HANDLE_ERROR(cudaMalloc(&kernel1_gpu,1*k*sizeof(float**)));
-
 	
-	HANDLE_ERROR(cudaMalloc(&k_gpu,sizeof(int)));
-	HANDLE_ERROR(cudaMalloc(&img_wd_gpu,sizeof(int)));
-	HANDLE_ERROR(cudaMalloc(&img_ht_gpu,sizeof(int)));
+	size_t pitch_k0, pitch_k1;
 
+	HANDLE_ERROR(cudaMallocPitch(&kernel0_gpu, &pitch_k0 ,1*sizeof(float),k));//allocate 1 x k size
+
+	HANDLE_ERROR(cudaMallocPitch(&kernel1_gpu, &pitch_k1, k*sizeof(float),1));//allocate k x 1 size
+	
 	cout<<"memory allocated"<<endl;
 
 	//copying needed data
 
-	HANDLE_ERROR(cudaMemcpy(Pixel_tmp_gpu,Pixel_tmp,img_wd*img_ht*sizeof(pixel),cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpy(Pixel_gpu,Pixel,img_wd*img_ht*sizeof(pixel),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(kernel0_gpu,kernel0,k*sizeof(float),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(kernel1_gpu,kernel1,k*sizeof(float),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(k_gpu,&k,sizeof(int),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(img_wd_gpu,&img_wd,sizeof(int),cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(img_ht_gpu,&img_ht,sizeof(int),cudaMemcpyHostToDevice));
+
+	HANDLE_ERROR(cudaMemcpy2D(kernel0_gpu, pitch_k0, kernel0,1*sizeof(float),1*sizeof(float),k,cudaMemcpyHostToDevice));
+
+	HANDLE_ERROR(cudaMemcpy2D(kernel1_gpu, pitch_k1, kernel1,k*sizeof(float),k*sizeof(float),1,cudaMemcpyHostToDevice));
 
 	cout<<"memory transfers done"<<endl;
 
-	vertical_conv<<<DimGrid,DimBlock>>>(Pixel, Pixel_tmp,img_wd, img_ht,kernel0,k);
+	vertical_conv<<<DimGrid,DimBlock>>>(Pixel_gpu, Pixel_tmp_gpu,img_wd, img_ht,kernel0_gpu,k);
 	time_t vertical_convolution=time(NULL);
 
 	cout<<" vertical_convolution time: "<<double(vertical_convolution - reading_file)<<"sec"<<endl;
 
-	HANDLE_ERROR(cudaMemcpy(Pixel_tmp,Pixel_tmp_gpu,img_wd*img_ht*sizeof(pixel),cudaMemcpyDeviceToHost));
-
 	
-	horizontal_conv<<<DimGrid,DimBlock>>>(Pixel_tmp, Pixel, img_wd, img_ht, kernel1, k);
+	horizontal_conv<<<DimGrid,DimBlock>>>(Pixel_tmp_gpu, Pixel_gpu, img_wd, img_ht, kernel1_gpu, k);
 	time_t horizontal_convolution=time(NULL);
+
 	cout<<" horizontal convolution time:" <<double(horizontal_convolution-vertical_convolution)<<" sec"<<endl;
-	HANDLE_ERROR(cudaMemcpy(Pixel,Pixel_gpu,img_wd*img_ht*sizeof(pixel),cudaMemcpyDeviceToHost));
-/*
+
+	//size_t pitch;
+
+
+	//HANDLE_ERROR(cudaMemcpy2D(Pixel,img_wd*sizeof(pixel*),Pixel_gpu,pitch,img_wd*sizeof(pixel*),img_ht,cudaMemcpyDeviceToHost));
+	HANDLE_ERROR(cudaMemcpy(Pixel_out,Pixel_gpu,img_wd*img_ht*sizeof(pixel),cudaMemcpyDeviceToHost));
 
 	//writing this to PPM file
 	ofstream ofs;
@@ -311,18 +312,9 @@ int main(int argc, char* argv[])
 	}
 	
 	
-	ofs.close();*/
+	ofs.close();
 	time_t end=time(NULL);
-	cout<<" Saving the result:"<<double(end-horizontal_convolution)<<" sec"<<endl;
-	
-	HANDLE_ERROR(cudaFree(Pixel_gpu)); 
-	HANDLE_ERROR(cudaFree(Pixel_tmp_gpu));
-	HANDLE_ERROR(cudaFree(k_gpu));
-	HANDLE_ERROR(cudaFree(kernel0_gpu));
-	HANDLE_ERROR(cudaFree(kernel1_gpu));
-	HANDLE_ERROR(cudaFree(img_ht_gpu));
-	HANDLE_ERROR(cudaFree(img_wd_gpu));
-
+	//cout<<" Saving the result:"<<double(end-horizontal_convolution)<<" sec"<<endl;
 
 	//display time taken for different processes
 	cout<<" Total execution time: "<<double(end-start_of_code)<<" sec"<<endl;
