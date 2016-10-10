@@ -28,34 +28,39 @@ static void HandleError( cudaError_t err, const char *file, int line ) {
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
-__device__ void padding(pixel* Pixel_val, int x_coord, int y_coord, int img_width, int img_height, pixel Px) //padding the image,depending on pixel coordinates, can be replaced by reflect for better result //currently zero padding
-{	Px.r=0; Px.g=0; Px.b=0;
+__device__ pixel padding(pixel* Pixel_val, int x_coord, int y_coord, int img_width, int img_height) 
+{	pixel Px;
+	Px.r=0; Px.g=0; Px.b=0;
 	if(x_coord< img_width && y_coord <img_height && x_coord>=0 && y_coord>=0)
+	{
 		Px=Pixel_val[y_coord*img_width+x_coord];
+	}
+	return Px;
 }
 
-
-__global__ void vertical_conv(pixel* Pixel_in, pixel* Pixel_out,int img_wd, int img_ht, float* kernel, int k)
+__global__ void vertical_conv(pixel* Pixel_in_v, pixel* Pixel_out_v,int img_wd_v, int img_ht_v, float* kernel_v, int k_v)
 {
 	float tmp_r, tmp_g, tmp_b;
-	int pix_idx=blockIdx.x*blockDim.x + threadIdx.x;
-	int row=(int)(pix_idx/img_wd);
-	int col=pix_idx%img_wd;
-				
-	if(row<img_ht && col<img_wd){
-		tmp_r=0, tmp_g=0, tmp_b=0;
-		for(int l=0;l<k;l++)
+	//int pix_idx_v=blockIdx.x*blockDim.x + threadIdx.x;
+	//int row=(int)(pix_idx_v/img_wd_v);
+	//int col=pix_idx_v%img_wd_v;
+	size_t col=blockIdx.x*blockDim.x + threadIdx.x;
+	size_t row=blockIdx.y*blockDim.y + threadIdx.y;
+	size_t pix_idx_v=row*img_wd_v+col;
+	tmp_r=0, tmp_g=0, tmp_b=0;		
+	if(row<img_ht_v && col<img_wd_v){
+
+		for(int l=0;l<k_v;l++)
 		{//doing by 1 D arrays	
-			pixel pix_val;
-			padding(Pixel_in, col, (row+l-(k-1)/2), img_wd, img_ht, pix_val);
-			tmp_r+=pix_val.r * kernel[l];
-			tmp_b+=pix_val.b * kernel[l];
-			tmp_g+=pix_val.g * kernel[l];
+			pixel pix_val=padding(Pixel_in_v, col, (row+l-(k_v-1)/2), img_wd_v, img_ht_v);
+			tmp_r+=pix_val.r * kernel_v[l];
+			tmp_b+=pix_val.b * kernel_v[l];
+			tmp_g+=pix_val.g * kernel_v[l];
 		}
 
-		Pixel_out[pix_idx].r=tmp_r;
-		Pixel_out[pix_idx].g=tmp_g;
-		Pixel_out[pix_idx].b=tmp_b;
+		Pixel_out_v[pix_idx_v].r=tmp_r;
+		Pixel_out_v[pix_idx_v].g=tmp_g;
+		Pixel_out_v[pix_idx_v].b=tmp_b;
 	}
 }			
 
@@ -64,16 +69,19 @@ __global__ void horizontal_conv(pixel* Pixel_in, pixel* Pixel_out, int img_wd, i
 {
 	float tmp_r, tmp_b, tmp_g;
 	//horizontal convolution
-	int pix_idx=blockIdx.x*blockDim.x + threadIdx.x;
-	int row=(int)(pix_idx/img_wd);
-	int col=pix_idx%img_wd;
+	//int pix_idx=blockIdx.x*blockDim.x + threadIdx.x;
+	//int row=(int)(pix_idx/img_wd);
+	//int col=pix_idx%img_wd;
+	size_t col=blockIdx.x*blockDim.x + threadIdx.x;
+	size_t row=blockIdx.y*blockDim.y + threadIdx.y;
+	size_t pix_idx=row*img_wd+col;
+
 	tmp_r=0, tmp_g=0, tmp_b=0;
 	if(row<img_ht && col<img_wd)
 	{
 		for(int l=0; l<k;l++)
 		{
-			pixel pix_val;
-			padding(Pixel_in, col+ l-(k-1)/2, row, img_wd, img_ht, pix_val);
+			pixel pix_val=padding(Pixel_in, col+ l-(k-1)/2, row, img_wd, img_ht);
 			tmp_r+=pix_val.r * kernel[l];
 			tmp_g+=pix_val.g * kernel[l];
 			tmp_b+=pix_val.b * kernel[l];
@@ -181,21 +189,14 @@ int main(int argc, char* argv[])
 	img_wd=word;
 	iss2>>word;// this will be image height
 	img_ht=word;
+	//cout<<"wd="<<img_wd<<", ht="<<img_ht<<endl;
 
-	pixel *Pixel_out=(pixel*)malloc(img_ht*img_wd*sizeof(pixel));
+	size_t num_pixels=img_wd*img_ht;
+	pixel *Pixel_out=(pixel*)malloc(num_pixels*sizeof(pixel));
 	//storing the pixels as lexicographically
-	pixel *Pixel = (pixel*)malloc((img_ht)*(img_wd)*sizeof(pixel));
-	//pixel **Pixel_tmp = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
-	
-	/*for(int i=0;i<(img_ht);i++)
-	{
-		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
-		Pixel[i]=(pixel*)malloc((img_wd)*sizeof(pixel));
-	}*/
+	pixel *Pixel = (pixel*)malloc(num_pixels*sizeof(pixel));
 
-
-
-	int pix_cnt=0, cnt=0, row,col;
+	int pix_cnt=0, cnt=0;
 
 	getline(infile,line); //this stores max value
 	
@@ -210,11 +211,9 @@ int main(int argc, char* argv[])
 		istringstream iss4(line);
 		for (int i=0; i<=line.length();i++)
 		{
-			if(pix_cnt<img_ht*img_wd)
+			if(pix_cnt<num_pixels)
 			{	
 				val =((int)line[i]);
-				//row=floor(pix_cnt/img_wd);
-				//col=pix_cnt%img_wd;
 				
 				if(cnt%3==0)
 				{		
@@ -242,71 +241,65 @@ int main(int argc, char* argv[])
 	cudaDeviceProp prop;
    	HANDLE_ERROR(cudaGetDeviceProperties(&prop, 0));
 
-
-    	int thread_block=prop.maxThreadsPerBlock;
-	dim3 DimGrid(ceil(img_ht*img_wd/thread_block),1,1);
-	dim3 DimBlock(thread_block,1,1);
-
+    	float thread_block=sqrt(prop.maxThreadsPerBlock);
+	dim3 DimGrid(ceil(img_wd/thread_block),ceil(img_ht/thread_block),1);
+	dim3 DimBlock(thread_block,thread_block,1);
+	cout<<"grid="<<DimGrid.x<<" "<<DimGrid.y<<" "<<DimGrid.z<<endl;
+	cout<<"block="<<DimBlock.x<<" "<<DimBlock.y<<" "<<DimBlock.z<<endl;
 	//allocating gpu memory
 
-
-	pixel *Pixel_tmp_gpu;
-
-	pixel *Pixel_gpu, *Pixel_gpu_res;
+	pixel *Pixel_tmp_gpu, *Pixel_gpu, *Pixel_gpu_res;
    
-	HANDLE_ERROR(cudaMalloc(&Pixel_gpu_res,img_wd*img_ht*sizeof(pixel))); //allocate space for image on device
-	HANDLE_ERROR(cudaMalloc(&Pixel_tmp_gpu,img_wd*img_ht*sizeof(pixel))); //allocate space for conv output
-	HANDLE_ERROR(cudaMalloc(&Pixel_gpu,img_wd*img_ht*sizeof(pixel))); //allocate space for image on device
+	HANDLE_ERROR(cudaMalloc(&Pixel_gpu_res,num_pixels*sizeof(pixel))); //allocate space to store convolution result
+	HANDLE_ERROR(cudaMemset(Pixel_gpu_res,128,num_pixels*sizeof(pixel)));
+	HANDLE_ERROR(cudaMalloc(&Pixel_tmp_gpu,num_pixels*sizeof(pixel))); //allocate space to store convolution temporary
+
+	HANDLE_ERROR(cudaMalloc(&Pixel_gpu,num_pixels*sizeof(pixel))); //allocate space to copy image to GPU memory
 	
 	float *kernel0_gpu, *kernel1_gpu;
 	
-	//size_t pitch_k0, pitch_k1;
 
-	HANDLE_ERROR(cudaMalloc(&kernel0_gpu, k*sizeof(float)));//allocate 
+	HANDLE_ERROR(cudaMalloc(&kernel0_gpu, k*sizeof(float)));//allocate memory for kernel0
 
-	HANDLE_ERROR(cudaMalloc(&kernel1_gpu, k*sizeof(float)));//allocate 
+	HANDLE_ERROR(cudaMalloc(&kernel1_gpu, k*sizeof(float)));//allocate memory for kernel1
 	
 	cout<<"memory allocated"<<endl;
 
 	//copying needed data
 
-	HANDLE_ERROR(cudaMemcpy(Pixel_gpu, Pixel, img_wd*img_ht*sizeof(pixel),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(Pixel_gpu, Pixel, num_pixels*sizeof(pixel),cudaMemcpyHostToDevice));//copy input image from global to gpu
 
-	HANDLE_ERROR(cudaMemcpy(kernel0_gpu, kernel0,k*sizeof(float),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(kernel0_gpu, kernel0,k*sizeof(float),cudaMemcpyHostToDevice));//copy the kernel0 host to device
 
-	HANDLE_ERROR(cudaMemcpy(kernel1_gpu,kernel1,k*sizeof(float),cudaMemcpyHostToDevice));
+	HANDLE_ERROR(cudaMemcpy(kernel1_gpu,kernel1,k*sizeof(float),cudaMemcpyHostToDevice));//copy kernel1 host to device
 
 	cout<<"memory transfers done"<<endl;
 
 	vertical_conv<<<DimGrid,DimBlock>>>(Pixel_gpu, Pixel_tmp_gpu,img_wd, img_ht,kernel0_gpu,k);
+	cout<<img_wd<<" "<<img_ht<<endl;
 	time_t vertical_convolution=time(NULL);
 
 	cout<<" vertical_convolution time: "<<double(vertical_convolution - reading_file)<<"sec"<<endl;
 
-	
 	horizontal_conv<<<DimGrid,DimBlock>>>(Pixel_tmp_gpu, Pixel_gpu_res, img_wd, img_ht, kernel1_gpu, k);
 	time_t horizontal_convolution=time(NULL);
 
+	HANDLE_ERROR(cudaMemcpy(Pixel_out,Pixel_gpu_res, num_pixels*sizeof(pixel),cudaMemcpyDeviceToHost));
+
 	cout<<" horizontal convolution time:" <<double(horizontal_convolution-vertical_convolution)<<" sec"<<endl;
-
-
-	HANDLE_ERROR(cudaMemcpy(Pixel_out,Pixel_gpu_res,img_wd*img_ht*sizeof(pixel),cudaMemcpyDeviceToHost));
-
 	//writing this to PPM file
 	ofstream ofs;
 	ofs.open("output_gpu.ppm", ofstream::out);
 	ofs<<"P6\n"<<img_wd<<" "<<img_ht<<"\n"<<max_val<<"\n";
 	
-	for(int i=0; i <img_ht*img_wd;i++)
+	for(int i=0; i <num_pixels;i++)
 	{
 		ofs<<Pixel_out[i].r<<Pixel_out[i].g<<Pixel_out[i].b;	//write as ascii
-		//cout<<"did we write?";
 	}
-	
-	
 	ofs.close();
+
 	time_t end=time(NULL);
-	cout<<" Saving the result:"<<double(end-horizontal_convolution)<<" sec"<<endl;
+	//cout<<" Saving the result:"<<double(end-horizontal_convolution)<<" sec"<<endl;
 
 	//display time taken for different processes
 	cout<<" Total execution time: "<<double(end-start_of_code)<<" sec"<<endl;
