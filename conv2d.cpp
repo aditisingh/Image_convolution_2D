@@ -17,69 +17,70 @@ struct  pixel //to store RGB values
 	unsigned char b;
 };
 
-pixel padding(pixel** Pixel_val, int x_coord, int y_coord, int img_width, int img_height) //padding the image,depending on pixel coordinates
+pixel padding(pixel* Pixel_val, int x_coord, int y_coord, int img_width, int img_height) //padding the image,depending on pixel coordinates
 //can be replaced by reflect for better result //currently zero padding
 {
 	pixel Px;
 	Px.r=0; Px.g=0; Px.b=0;
-	if(x_coord>=img_width)
-		return Px;
-	else if(x_coord<0)
-		return Px;
-	else if(y_coord>=img_height)
-		return Px;
-	else if(y_coord<0)
-		return Px;
-	else	
-		return Pixel_val[y_coord][x_coord];
+	if(x_coord< img_width && y_coord <img_height && x_coord>=0 && y_coord>=0)
+		Px=Pixel_val[y_coord*img_width+x_coord];
+	return Px;
 }
 
 
-pixel** vertical_conv(pixel** Pixel_in, pixel** Pixel_out,int img_wd, int img_ht, float** kernel, int k)
+pixel* vertical_conv(pixel* Pixel_in, int img_wd, int img_ht, float* kernel, int k)
 {
 	float tmp_r, tmp_g, tmp_b;
-
-	//vertical convolution
-	for(int i=0; i<img_wd;i++ )
-	{		
-		for(int j=0;j<img_ht;j++)
-		{
+	pixel* Pixel_out=(pixel*)(malloc(img_wd*img_ht*sizeof(pixel)));
+	for(int pix_idx=0;pix_idx<img_ht*img_wd;pix_idx++)
+	{
+		//vertical convolution
+		int row=(int)(pix_idx/img_wd);
+		int col=pix_idx%img_wd;
+					
+		if(row<img_ht && col<img_wd){
 			tmp_r=0, tmp_g=0, tmp_b=0;
 			for(int l=0;l<k;l++)
-			{	
-				pixel pix_val=padding(Pixel_in, i, j+l-(k-1)/2, img_wd, img_ht);
-				tmp_r+=pix_val.r * kernel[l][0];
-				tmp_b+=pix_val.b * kernel[l][0];
-				tmp_g+=pix_val.g * kernel[l][0];
+			{//doing by 1 D arrays	
+				pixel pix_val=padding(Pixel_in, col,(row+l-(k-1)/2), img_wd, img_ht);
+				tmp_r+=pix_val.r * kernel[l];
+				tmp_b+=pix_val.b * kernel[l];
+				tmp_g+=pix_val.g * kernel[l];
 			}
-			Pixel_out[j][i].r=tmp_r;
-			Pixel_out[j][i].g=tmp_g;
-			Pixel_out[j][i].b=tmp_b;
+
+			Pixel_out[pix_idx].r=tmp_r;
+			Pixel_out[pix_idx].g=tmp_g;
+			Pixel_out[pix_idx].b=tmp_b;
 		}
 	}
 	return Pixel_out;
 }
 
-pixel** horizontal_conv(pixel** Pixel_in, pixel** Pixel_out, int img_wd, int img_ht, float** kernel, int k )
+pixel* horizontal_conv(pixel* Pixel_in, int img_wd, int img_ht, float* kernel, int k )
 {
 	float tmp_r, tmp_b, tmp_g;
 	//horizontal convolution
-	for(int j=0;j<img_ht;j++ )
+	pixel* Pixel_out=(pixel*)(malloc(img_wd*img_ht*sizeof(pixel)));
+
+	for(int pix_idx=0;pix_idx<img_ht*img_wd;pix_idx++)
 	{
-		for(int i=0; i<img_wd;i++)
-		{
+		//vertical convolution
+		int row=(int)(pix_idx/img_wd);
+		int col=pix_idx%img_wd;
+					
+		if(row<img_ht && col<img_wd){
 			tmp_r=0, tmp_g=0, tmp_b=0;
-			for(int l=0; l<k;l++)
-			{
-				pixel pix_val=padding(Pixel_in, i+l-(k-1)/2, j, img_wd, img_ht);
-				tmp_r+=pix_val.r * kernel1[0][l];
-				tmp_g+=pix_val.g * kernel1[0][l];
-				tmp_b+=pix_val.b * kernel1[0][l];
+			for(int l=0;l<k;l++)
+			{//doing by 1 D arrays	
+				pixel pix_val=padding(Pixel_in, col+l-(k-1)/2,row, img_wd, img_ht);
+				tmp_r+=pix_val.r * kernel[l];
+				tmp_b+=pix_val.b * kernel[l];
+				tmp_g+=pix_val.g * kernel[l];
 			}
-			Pixel_out[j][i].r=tmp_r;
-			Pixel_out[j][i].g=tmp_g;
-			Pixel_out[j][i].b=tmp_b;
-		
+
+			Pixel_out[pix_idx].r=tmp_r;
+			Pixel_out[pix_idx].g=tmp_g;
+			Pixel_out[pix_idx].b=tmp_b;
 		}
 	}
 	return Pixel_out;
@@ -98,30 +99,26 @@ int main(int argc, char* argv[])
 
 	if(k%2==0) k++; //to make the size odd
 
-	float **kernel0 = (float **)malloc(k * sizeof(float*)); //y based gaussian
-	float **kernel1 = (float **)malloc(1* sizeof(float*));	//x based gaussian
+	float *kernel0 = (float *)malloc(k * sizeof(float)); //y based gaussian
+	float *kernel1 = (float *)malloc(k * sizeof(float));	//x based gaussian
 
-	for(int i=0;i<k;i++)
-		kernel0[i]=(float*)malloc(1*sizeof(float));
 	
-	kernel1[0]=(float*)malloc(k*sizeof(float));
-
 	float constant1=sqrt(2*M_PI*sigma*sigma);//constants needed to define the kernel
 	float constant2=2*sigma*sigma;
 
 	int mid=floor(k/2);
-	kernel0[mid][0]=1/constant1;
-	kernel1[0][mid]=1/constant1;
+	kernel0[mid]=1/constant1;
+	kernel1[mid]=1/constant1;
 
 	for(int i=0;i<floor(k/2);i++)	//using symmetry from center, to generate the separable kernels 
 	{
-		kernel0[i][0]=((exp(-(floor(k/2)-i)*(floor(k/2)-i)/constant2)))/constant1;
+		kernel0[i]=((exp(-(floor(k/2)-i)*(floor(k/2)-i)/constant2)))/constant1;
 
-		kernel1[0][i]=kernel0[i][0];
+		kernel1[i]=kernel0[i];
 
-		kernel0[k-1-i][0]=kernel0[i][0];
+		kernel0[k-1-i]=kernel0[i];
 
-		kernel1[0][k-1-i]=kernel1[0][i];
+		kernel1[k-1-i]=kernel1[i];
 
 	}
 	time_t kernel_generation=time(NULL); //find time taken for kernel generation
@@ -160,14 +157,10 @@ int main(int argc, char* argv[])
 	iss2>>word;// this will be image height
 	img_ht=word;
 
-	//storing the pixels as 2d images
-	pixel **Pixel = (pixel**)malloc((img_ht)*sizeof(pixel*));
-	pixel **Pixel_tmp = (pixel **)malloc((img_ht) * sizeof(pixel*)); 
-	
-	for(int i=0;i<(img_ht);i++){
-		Pixel_tmp[i]=(pixel*)malloc(img_wd*sizeof(pixel));
-		Pixel[i]=(pixel*)malloc((img_wd)*sizeof(pixel));}
-
+	//storing the pixels as 1d images
+	pixel *Pixel = (pixel*)malloc((img_ht)*(img_wd)*sizeof(pixel));
+	pixel *Pixel_tmp = (pixel *)malloc((img_ht)*(img_wd) *sizeof(pixel)); 
+	pixel *Pixel_out = (pixel *)malloc((img_ht)*(img_wd) *sizeof(pixel)); 
 
 
 	int pix_cnt=0, cnt=0, row,col;
@@ -188,20 +181,18 @@ int main(int argc, char* argv[])
 			if(pix_cnt<img_ht*img_wd)
 			{	
 				val =((int)line[i]);
-				row=floor(pix_cnt/img_wd);
-				col=pix_cnt%img_wd;
 				
 				if(cnt%3==0)
 				{		
-					Pixel[row][col].r=val;
+					Pixel[pix_cnt].r=val;
 				}
 				else if(cnt%3==1)
 				{
-					Pixel[row][col].g=val;
+					Pixel[pix_cnt].g=val;
 				}
 				else
 				{
-					Pixel[row][col].b=val;
+					Pixel[pix_cnt].b=val;
 					pix_cnt++;
 				}
 				cnt++;
@@ -215,11 +206,11 @@ int main(int argc, char* argv[])
 
 	//perform vertical convolution
 
-	Pixel_tmp=vertical_conv(Pixel, Pixel_tmp,img_wd, img_ht,kernel0,k);
+	Pixel_tmp=vertical_conv(Pixel,img_wd, img_ht,kernel0,k);
 	
 	time_t vertical_convolution=time(NULL);
 
-	Pixel=horizontal_conv(Pixel_tmp, Pixel, img_wd, img_ht, kernel1, k);
+	Pixel_out=horizontal_conv(Pixel_tmp, img_wd, img_ht, kernel1, k);
 
 	time_t horizontal_convolution=time(NULL);
 
@@ -229,12 +220,9 @@ int main(int argc, char* argv[])
 	ofs.open("output.ppm", ofstream::out);
 	ofs<<"P6\n"<<img_wd<<" "<<img_ht<<"\n"<<max_val<<"\n";
 	
-	for(int j=0; j <img_ht;j++)
+	for(int j=0; j <img_ht*img_wd;j++)
 	{
-		for (int i=0; i<img_wd;i++)
-		{
-			ofs<<Pixel[j][i].r<<Pixel[j][i].g<<Pixel[j][i].b;	//write as ascii
-		}
+		ofs<<Pixel_out[j].r<<Pixel_out[j].g<<Pixel_out[j].b;	//write as ascii
 	}
 	
 	ofs.close();
